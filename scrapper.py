@@ -65,8 +65,11 @@ class Anime:
             f"{self.main_url}/watch/{id}/{name}/episode-{ep}-{mode}"
             
         ).text
-        gogo_id =re.findall(r'".*\.php\?id=(.*?)\&.*"',r)[0]
-        print(gogo_id)
+        
+        try:
+            gogo_id =re.findall(r'".*\.php\?id=(.*?)\&.*"',r)[0]
+        except:
+            pass
         api_id = re.findall('id=(.*?)&',re.findall(r'"embedUrl":"(.*?)"',r)[0])[0]
         r=client.get(f"{self.api_url}?id={api_id}").json()
         
