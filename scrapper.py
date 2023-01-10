@@ -83,7 +83,7 @@ class Anime:
             
         #extract quality
         r=client.get(link).text
-        print(r)
+        
         
         for match in re.finditer(start_regex,r):
             res,link = match.groups()
