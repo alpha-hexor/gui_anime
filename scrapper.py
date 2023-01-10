@@ -16,7 +16,7 @@ class Anime:
         self.api_url = "https://blog.allanime.pro/apivtwo/clock.json"
         self.r = ""
     
-    def search(self,query:str)->list:
+    def search(self,query:str, dct)->list:
         """function to search anime
 
         Args:
@@ -37,9 +37,11 @@ class Anime:
         names = [i['name'] for i in r['data']['shows']['edges']]
         #fix the names
         names = [i.replace(" ","-") for i in names]
-        return anime_ids,names
+        dct.clear()
+        for anime_id, name in zip(anime_ids, names):
+            dct[anime_id] = name
     
-    def sub_dub_episode(self,index:int):
+    def sub_dub_episode(self,index:int, lst):
         """return available sub and dub episode
 
         Args:
@@ -48,8 +50,8 @@ class Anime:
         r=json.loads(self.r)
         dub_eps = r['data']['shows']['edges'][index]['availableEpisodes']['dub']
         sub_eps = r['data']['shows']['edges'][index]['availableEpisodes']['sub']
-        
-        return sub_eps,dub_eps
+        lst.append(dub_eps)
+        lst.append(sub_eps)
     
     def extract_link(self,id:str,name:str,ep:str,mode:str):
         """get the final streaming link
