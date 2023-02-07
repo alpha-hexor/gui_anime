@@ -1,22 +1,28 @@
 import httpx
 import re
 import json
-
+import html
+import base64
+from Cryptodome.Cipher import AES
+import json
+import yarl
 
 #some global shit
-client = httpx.Client(headers={'user-agent':'uwu'})
+client = httpx.Client(headers={'user-agent':'uwu'},follow_redirects=True,timeout=None)
 EXTENSION = '%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%229c7a8bc1e095a34f2972699e8105f7aaf9082c6e1ccd56eab99c2f1a971152c6%22%7D%7D'
 start_regex = r"#EXT-X-STREAM-INF(:.*?)?\n+(.+)"
 res_regex = r"RESOLUTION=\d+x(\d+)"
-
+key1=b'37911490979715163134003223491201'
+key2 = b'54674138327930866480207815084989'
+iv= b'3134003223491201'
 
 class Anime:
     def __init__(self):
         self.main_url = "https://allanime.site"
-        self.api_url = "https://blog.allanime.pro/apivtwo/clock.json"
+        #self.api_url = "https://blog.allanime.pro/apivtwo/clock.json"
         self.r = ""
     
-    def search(self,query:str, dct)->list:
+    def search(self,query:str,dct)->list:
         """function to search anime
 
         Args:
@@ -40,9 +46,10 @@ class Anime:
         dct.clear()
         for anime_id, name in zip(anime_ids, names):
             dct[anime_id] = name
+        #return anime_ids,names
     
-    def sub_dub_episode(self,index:int, lst):
-        """return available sub and dub episode
+    def anime_data(self,index:int)->dict:
+        """return all data about anime
 
         Args:
             index (int): index of the name in the list
@@ -50,8 +57,18 @@ class Anime:
         r=json.loads(self.r)
         dub_eps = r['data']['shows']['edges'][index]['availableEpisodes']['dub']
         sub_eps = r['data']['shows']['edges'][index]['availableEpisodes']['sub']
-        lst.append(dub_eps)
-        lst.append(sub_eps)
+        try:
+            
+            thumbnail_url = r['data']['shows']['edges'][index]['thumbnail']
+        except:
+            thumbnail_url = None
+        anime_id = r['data']['shows']['edges'][index]['_id']
+        x=client.get(f"{self.main_url}/anime/{anime_id}/")
+        print(x)
+        raw_desc = re.findall(r'description\\":\\"(.*?)\\"',x.text)[0].replace("\\n","").replace("\\","").replace("u003Cbr","").replace("u003E","")
+        desc = html.unescape(raw_desc)
+        
+        return {'dub':dub_eps,'sub':sub_eps,'thumbnail':thumbnail_url,'desc':desc}
     
     def extract_link(self,id:str,name:str,ep:str,mode:str):
         """get the final streaming link
@@ -70,25 +87,37 @@ class Anime:
         
         try:
             gogo_id =re.findall(r'".*\.php\?id=(.*?)\&.*"',r)[0]
-        except:
-            pass
-        api_id = re.findall('id=(.*?)&',re.findall(r'"embedUrl":"(.*?)"',r)[0])[0]
-        r=client.get(f"{self.api_url}?id={api_id}").json()
-        
-        #extract link from the json
-        try:
-            link = r['links'][0]['src']
-        except:
-            link = r['links'][0]['link']
             
-        #extract quality
-        r=client.get(link).text
+        except:
+            gogo_id = ""
+        
+        domain,slug,api_id = re.findall(r'"embedUrl":"https://(.*?)/(.*?)/clock\?id=(.*?)&',r)[0]
         
         
-        for match in re.finditer(start_regex,r):
-            res,link = match.groups()
-            q=re.findall(res_regex,res)[0]
-            yield {q:link}
+        r=client.get(f"https://{domain}/{slug}/clock.json?id={api_id}")
+        
+        
+        
+        try:
+            streaming_links = re.findall(":\s*'(https://.*?)',",str(r.json()))
+        except:
+            streaming_links = re.findall(':\s*"(https://.*?)",',str(r.json()))
                 
+       
+        print(streaming_links)
+        for i in streaming_links:
+            if yarl.URL(i).name.endswith('m3u8'):
+                streaming_link = i
+                
+            
+        r=client.get(streaming_link).text
+        try:
+            for match in re.finditer(start_regex,r):
+                res,link = match.groups()
+                q=re.findall(res_regex,res)[0]
+                yield {q:link}
+        except:
+            yield {'hls-p':streaming_link}
+                    
         
         
