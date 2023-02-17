@@ -17,7 +17,7 @@ class Anime:
     
 
     
-    def search(self,query:str)->list:
+    def search(self,query:str, lst:list):
         """function to search anime
 
         Args:
@@ -31,9 +31,8 @@ class Anime:
         query = query.replace(" ","+")
         r=client.get(f"{self.main_url}/discover/?q={query}")
         
-        anime_data = re.findall(r'"/anime/(.*?)/(.*?)/"',r.text)
-        
-        return anime_data
+        names = re.findall(r'"/anime/(.*?)/(.*?)/"',r.text)
+        lst.extend(names)
     
     def anime_data(self,anime_data:tuple)->dict:
         """return all data about anime
@@ -41,7 +40,7 @@ class Anime:
         Args:
             anime_data : (anime_id,anime_name)
         """
-        anime_id,name = anime_data
+        anime_id,name = (anime_data)
         r=client.get(
             f"{self.main_url}/anime/{anime_id}/{name}/watch/"
         )
