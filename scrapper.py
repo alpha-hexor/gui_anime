@@ -12,8 +12,8 @@ res_regex = r"RESOLUTION=\d+x(\d+)"
 
 class Anime:
     def __init__(self):
-        self.main_url = "https://yugen.to"
-        self.api_url = "https://yugen.to/api/embed/"
+        self.main_url = "https://yugenanime.ro"
+        self.api_url = "https://yugenanime.ro/api/embed/"
     
 
     
