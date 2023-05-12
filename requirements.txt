@@ -1,0 +1,6 @@
+httpx
+yarl
+tkinter
+customtkinter
+Pillow
+CTkMessagebox
