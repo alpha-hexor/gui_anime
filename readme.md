@@ -5,6 +5,10 @@
 
 
 
+https://github.com/alpha-hexor/gui_anime/assets/83006189/22d87fab-b62c-4c96-98ba-e6a66189018b
+
+
+
 ## Prerequests
 1. **python 3.7+**
 
@@ -13,6 +17,7 @@
 ## Installation
 
 ``pip install -r requirements.txt``
+
 ``python main.py``
 
 ## Compile to executable
