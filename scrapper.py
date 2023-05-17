@@ -55,7 +55,7 @@ def get_anime_data(id,name):
     thumbnail_url = re.findall(r'<img src="(.*?)"',r.text)[1]
     banner_url = re.findall(r'''"background-image: url\('(.*?)'\);">''',r.text)[0]
     if not yarl.URL(banner_url).is_absolute():
-        banner_url = "https://{host}"+banner_url
+        banner_url = f"{main_url}{banner_url}"
     
     result['banner_url'] = banner_url
     result['thumbnail_url'] = thumbnail_url
