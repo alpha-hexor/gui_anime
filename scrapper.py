@@ -14,7 +14,9 @@ client = httpx.Client(
     follow_redirects=True,
     timeout= None
 )
-main_url = "https://yugen.to"
+#dynamically get host for yugene
+host = client.get("https://yugen.to").url.host
+main_url = f"https://{host}"
 api_url = f"{main_url}/api/embed/"
 start_regex = r"#EXT-X-STREAM-INF(:.*?)?\n+(.+)"
 res_regex = r"RESOLUTION=\d+x(\d+)"
@@ -53,7 +55,7 @@ def get_anime_data(id,name):
     thumbnail_url = re.findall(r'<img src="(.*?)"',r.text)[1]
     banner_url = re.findall(r'''"background-image: url\('(.*?)'\);">''',r.text)[0]
     if not yarl.URL(banner_url).is_absolute():
-        banner_url = "https://yugen.to"+banner_url
+        banner_url = "https://{host}"+banner_url
     
     result['banner_url'] = banner_url
     result['thumbnail_url'] = thumbnail_url
