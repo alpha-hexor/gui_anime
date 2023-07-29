@@ -9,16 +9,17 @@ from CTkMessagebox import CTkMessagebox
 import subprocess
 import threading
 
-# Define tkinter window
-ctk.set_appearance_mode("dark")  
-ctk.set_default_color_theme("dark-blue")
-ctk.deactivate_automatic_dpi_awareness()  
-root = ctk.CTk()
-root.geometry("900x900")
-root.title("Anime App")
+def load_image(url:str,size_x:int,size_y:int):
+    response = httpx.get(url)
+    img_data = response.content
+    img = Image.open(io.BytesIO(img_data))
+    img = img.resize((size_x,size_y))
+
+    return img
 
 # Define search function
 def show_anime():
+
     # Clear previous search results
     for widget in result_frame.interior.winfo_children():
         widget.destroy()
@@ -37,11 +38,7 @@ def show_anime():
         col =0
         for i in range(len(names)):
             # Get anime thumbnail image
-            image_url = images[i]
-            image_response = httpx.get(image_url)
-            img_data = image_response.content
-            img = Image.open(io.BytesIO(img_data))
-            img = img.resize((100, 150))
+            img=load_image(images[i],100,150)
             photo = ImageTk.PhotoImage(img)
             # Create thumbnail widget
             thumbnail = ctk.CTkLabel(result_frame.interior, image=photo,text="")
@@ -62,8 +59,8 @@ def show_anime():
         canvas.config(scrollregion=canvas.bbox(ctk.ALL))
     
     #start with a thread to fix the unresponsive gui
-    thread = threading.Thread(target=load_content)
-    thread.start()
+    load_episode_thread = threading.Thread(target=load_content)
+    load_episode_thread.start()
     
 #create a separate thread for the player function
 def start_player(link):
@@ -89,7 +86,10 @@ def open_anime_window(index,names):
     anime_window = ctk.CTkToplevel(root)
     anime_window.geometry("800x800")
     anime_window.resizable(0,0)
+    #anime_window.attributes('-topmost', 1)
+    anime_window.grab_set()
     anime_window.title(anime_name)
+    
 
     # Create a canvas to add a scrollbar to
     canvas = ctk.CTkCanvas(anime_window)
@@ -113,20 +113,15 @@ def open_anime_window(index,names):
     dub_eps = anime_info["dub_eps"]
 
     # Create banner image widget
-    banner_image_response = httpx.get(banner_url)
-    banner_img_data = banner_image_response.content
-    banner_img = Image.open(io.BytesIO(banner_img_data))
-    banner_img = banner_img.resize((800, 200))
+
+    banner_img = load_image(banner_url,800,200)
     banner_photo = ImageTk.PhotoImage(banner_img)
     banner_label = ctk.CTkLabel(anime_frame, image=banner_photo,text="")
     banner_label.image = banner_photo
     banner_label.pack()
 
     # Create thumbnail image widget
-    thumbnail_image_response = httpx.get(thumbnail_url)
-    thumbnail_img_data = thumbnail_image_response.content
-    thumbnail_img = Image.open(io.BytesIO(thumbnail_img_data))
-    thumbnail_img = thumbnail_img.resize((150, 225))
+    thumbnail_img = load_image(thumbnail_url,150,225)
     thumbnail_photo = ImageTk.PhotoImage(thumbnail_img)
     thumbnail_label = ctk.CTkLabel(anime_frame, image=thumbnail_photo,text="")
     thumbnail_label.image = thumbnail_photo
@@ -139,11 +134,11 @@ def open_anime_window(index,names):
     #Create checkbox widgets for sub and dub episodes
     sub_var = tk.BooleanVar()
     sub_checkbutton = ctk.CTkCheckBox(anime_frame, text="Sub Episodes", variable=sub_var, command=lambda: show_episodes(sub_var.get(), dub_var.get(), sub_eps, dub_eps))
-    sub_checkbutton.place(x=170, y=450)
+    sub_checkbutton.place(x=170, y=400)
 
     dub_var = tk.BooleanVar(value=False)
     dub_checkbutton = ctk.CTkCheckBox(anime_frame, text="Dub Episodes", variable=dub_var, command=lambda: show_episodes(sub_var.get(), dub_var.get(), sub_eps, dub_eps))
-    dub_checkbutton.place(x=300, y=450)
+    dub_checkbutton.place(x=300, y=400)
 
     anime_window.focus()
     anime_frame.update_idletasks()
@@ -155,6 +150,8 @@ def open_anime_window(index,names):
             #print(audio_type)
             data = stream_link(anime_id,str(episode_num),audio_type)
             quality_window = ctk.CTkToplevel(anime_window)
+            quality_window.grab_set()
+            quality_window.attributes()
             quality_window.title(f"Qualities - Episode {episode_num}, {audio_type}")
             quality_frame = ctk.CTkFrame(quality_window)
             quality_frame.pack()
@@ -166,12 +163,19 @@ def open_anime_window(index,names):
         audio_type = "sub" if is_sub else "dub"
         episode_list = []
         for i in range(1, int(sub_eps) + 1) if audio_type == 'sub' else range(1, int(dub_eps) + 1):
-            episode_list.append(f"Episode {i}")
+            episode_list.append(f"Ep-{i}")
         if not len(episode_list):
             CTkMessagebox(title="Error", message=f"{audio_type} is not available choose the other one", icon="cancel")
         else:
-            episode_frame = ctk.CTkFrame(anime_window)
-            episode_frame.place(x=170, y=500)
+ 
+            num_rows = (len(episode_list) + 4) // 5
+            num_cols = 5
+            button_width = 15
+            episode_frame_width = 400
+
+            # Create episode frame
+            episode_frame = ctk.CTkFrame(anime_window, width=episode_frame_width)
+            episode_frame.place(x=170, y=450)
 
             scrollbar = ctk.CTkScrollbar(episode_frame)
             scrollbar.pack(side="right", fill="y")
@@ -183,28 +187,32 @@ def open_anime_window(index,names):
             episode_content = ctk.CTkFrame(episode_scroll)
             episode_scroll.create_window((0, 0), window=episode_content, anchor="nw")
 
-            # Calculate number of columns and rows
-            num_rows = (len(episode_list) + 2) // 3
-            num_cols = 3
-
             # Configure episode_content frame with grid layout
             episode_content.columnconfigure(list(range(num_cols)), weight=1)
             episode_content.rowconfigure(list(range(num_rows)), weight=1)
 
             # Place buttons in the grid
+            
             for i, episode in enumerate(episode_list):
-                episode_btn = ctk.CTkButton(episode_content, text=episode, width=15,
-                                            command=lambda episode=episode: on_episode_click(episode.split()[1], audio_type))
+                episode_btn = ctk.CTkButton(episode_content, text=episode, width=button_width,
+                                            command=lambda episode=episode: on_episode_click(episode.split("-")[1], audio_type))
                 episode_btn.grid(row=i // num_cols, column=i % num_cols, padx=5, pady=5)
 
-            episode_scroll.bind("<Configure>", lambda e: episode_scroll.configure(scrollregion=episode_scroll.bbox("all")))
-
+            episode_scroll.bind("<MouseWheel>", lambda e: episode_scroll.configure(scrollregion=episode_scroll.bbox("all")))
 
 def on_thumbnail_click(idx,names):
    open_anime_window(idx,names)
    
-   
-   
+
+# Define tkinter window
+ctk.set_appearance_mode("dark")  
+ctk.set_default_color_theme("dark-blue")
+ctk.deactivate_automatic_dpi_awareness()  
+root = ctk.CTk()
+width= root.winfo_screenwidth()
+height= root.winfo_screenheight()
+root.geometry("%dx%d" % (width, height))
+root.title("Anime App")   
    
 # Define search label and entry widget
 search_label = ctk.CTkLabel(root, text="Enter anime name")
@@ -229,9 +237,9 @@ scrollbar_y.pack(side=ctk.RIGHT, fill=ctk.Y)
 scrollbar_x = ctk.CTkScrollbar(result_frame, orientation=ctk.HORIZONTAL)
 scrollbar_x.pack(side=ctk.BOTTOM, fill=ctk.X)
 
-canvas = ctk.CTkCanvas(result_frame, yscrollcommand=scrollbar_y.set,xscrollcommand=scrollbar_x.set ,width=900, height=900)
+canvas = ctk.CTkCanvas(result_frame, yscrollcommand=scrollbar_y.set,xscrollcommand=scrollbar_x.set ,width=900, height=900,background=root.cget("bg"))
 canvas.pack(side=ctk.LEFT, fill=ctk.BOTH, expand=True)
-canvas.create_rectangle(0, 0, 900, 900, fill=root.cget("bg"), width=0)
+#canvas.create_rectangle(0, 0, 900, 900, fill=root.cget("bg"), width=0)
 
 result_frame.interior = ctk.CTkFrame(canvas, width=900, height=900)
 result_frame.interior.pack(fill=ctk.BOTH, expand=True)

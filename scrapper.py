@@ -51,6 +51,8 @@ def get_anime_data(id,name):
     raw_desc = re.findall('<p class="description .+?">(.*)</p>',r.text)[0]
     raw_desc = re.sub(r'<.*?>',"",raw_desc) #clear any html tags
     desc = html.unescape(raw_desc)
+    if len(desc) >= 1383:
+        desc = desc[:1200] + "..."
     
     thumbnail_url = re.findall(r'<img src="(.*?)"',r.text)[1]
     banner_url = re.findall(r'''"background-image: url\('(.*?)'\);">''',r.text)[0]
