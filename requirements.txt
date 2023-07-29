@@ -1,6 +1,6 @@
 httpx
 yarl
-tkinter
+tk
 customtkinter
 Pillow
 CTkMessagebox
